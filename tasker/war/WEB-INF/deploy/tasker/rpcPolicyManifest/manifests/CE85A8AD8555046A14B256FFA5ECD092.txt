@@ -1,0 +1,2 @@
+serviceClass: com.gokaconsulting.taskerweb.client.GreetingService
+path: 01A92CBD16C4AD2EE7194D154425A093.gwt.rpc
