@@ -127,6 +127,49 @@ public class TaskServlet extends HttpServlet {
 		}
 	}
 	
+	public void doPost(HttpServletRequest req, HttpServletResponse resp)
+			throws IOException {
+
+		PersistenceManager pm = PMF.get().getPersistenceManager();
+
+		String taskID = req.getParameter("task");
+
+		if (taskID != null) {
+
+			logger.info("Task to be updated: " + taskID);
+			try {
+				Key k = KeyFactory.createKey(Task.class.getSimpleName(),
+						Long.valueOf(taskID));
+				Task t = pm.getObjectById(Task.class, k);
+
+				DateFormat formatter = new SimpleDateFormat("dd-MM-yy-HH-mm-ss");
+				Date createDate = null;
+
+				String title = req.getParameter("title");
+				String creator = req.getParameter("creator");
+				// TODO: shouldn't really allow update of create date
+				if (req.getParameter("createDate") != null) {
+					try {
+						createDate = (Date) formatter.parse(req
+								.getParameter("createDate"));
+					} catch (ParseException e) {
+						logger.severe("Failed to convert create date: "
+								+ req.getParameter("createDate")
+								+ " for update");
+
+					}
+				}
+				
+				t.setTitle(title);
+				t.setCreateDate(createDate);
+				t.setCreator(creator);
+				
+			} finally {
+				pm.close();
+			}
+		}
+
+	}
 	public void doPut(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
     	
@@ -138,7 +181,7 @@ public class TaskServlet extends HttpServlet {
     	try {
 			createDate = (Date)formatter.parse(req.getParameter("createDate"));
 		} catch (ParseException e) {
-			logger.severe("Failed to convert create date: " + req.getParameter("createDate"));
+			logger.severe("Failed to convert create date: " + req.getParameter("createDate") + " for insert");
 		}
     	
     	Task t = new Task(title, creator, createDate);
