@@ -11,6 +11,7 @@
     <url-pattern>/tasker/greet</url-pattern>
   </servlet-mapping>
   
+<<<<<<< HEAD
     <servlet>
     <servlet-name>taskServlet</servlet-name>
     <servlet-class>com.gokaconsulting.taskerweb.server.TaskServlet</servlet-class>
@@ -21,6 +22,8 @@
     <url-pattern>/tasker/task</url-pattern>
   </servlet-mapping>
   
+=======
+>>>>>>> 2b43d21d8716425d4dd3dbb04454e31a3d7c0b66
   <!-- Default page to serve -->
   <welcome-file-list>
     <welcome-file>Tasker.html</welcome-file>

@@ -5,6 +5,9 @@
 	<classpathentry kind="con" path="com.google.appengine.eclipse.core.GAE_CONTAINER"/>
 	<classpathentry kind="con" path="com.google.gwt.eclipse.core.GWT_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+<<<<<<< HEAD
 	<classpathentry kind="lib" path="war/WEB-INF/lib/gson-2.2.2.jar" sourcepath="/Users/Tom/Downloads/google-gson-2.2.2/gson-2.2.2-sources.jar"/>
+=======
+>>>>>>> 2b43d21d8716425d4dd3dbb04454e31a3d7c0b66
 	<classpathentry kind="output" path="war/WEB-INF/classes"/>
 </classpath>
