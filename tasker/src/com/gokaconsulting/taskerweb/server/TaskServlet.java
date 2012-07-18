@@ -20,7 +20,7 @@ import com.google.appengine.api.datastore.Key;
 import com.google.gson.Gson;
 import java.util.List;
 import javax.jdo.Query;
-//import com.google.gson.GsonBuilder;
+import com.google.gson.GsonBuilder;
 
 import com.gokaconsulting.taskerweb.server.Task;
 import com.gokaconsulting.taskerweb.server.PMF;
@@ -45,7 +45,9 @@ public class TaskServlet extends HttpServlet {
 		
 		
 		PersistenceManager pm = PMF.get().getPersistenceManager();
-		Gson gson = new Gson();
+		Gson gson = new GsonBuilder()
+					.excludeFieldsWithoutExposeAnnotation()
+					.create();
 		
 		String taskID = req.getParameter("task");
 		String userID = req.getParameter("user");
@@ -59,6 +61,7 @@ public class TaskServlet extends HttpServlet {
 		        Task t = pm.getObjectById(Task.class, k);
 		        logger.info("Title is: " + t.getTitle());
 		        String json = gson.toJson(t);
+		        json = "{\"Task\":" + json;
 		        
 		        resp.setContentType("text/html"); 
 		        resp.setCharacterEncoding("utf-8"); 
@@ -79,22 +82,25 @@ public class TaskServlet extends HttpServlet {
 		        q.declareParameters("String userID");
 		        
 		        try {
+		        	
 		        
 		        @SuppressWarnings("unchecked")
 				List<Task> results = (List<Task>)q.execute(userID);
 		        if(!results.isEmpty()) {
+		        	//resp.getWriter().write("{\"Tasks\":[");
 		        	logger.info("Count of tasks found for user: " + userID + " is: " + results.size());
 		        	for (Task t: results)
 		        	{
 		        		gson.toJson(t, resp.getWriter());
 		        	}
+		        	//resp.getWriter().write("]}");
 		        }
 		        else
 		        {
 		        	logger.info("No tasks found for user: " + userID);
 		        }
-		        resp.setContentType("text/html"); 
-		        resp.setCharacterEncoding("utf-8"); 
+		        resp.setContentType("application/json"); 
+		        //resp.setCharacterEncoding("utf-8"); 
 		        
 		    } finally {
 		        pm.close();
@@ -191,6 +197,8 @@ public class TaskServlet extends HttpServlet {
     	try {
     		pm.makePersistent(t);
     		logger.info("New task saved, title: " + t.getTitle() + " id: " + t.getKey());
+    		//TODO: Find better way to get ID for gson
+    		t.setID(t.getKey());
     	} finally {
     		pm.close();
     	}
