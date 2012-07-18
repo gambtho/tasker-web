@@ -7,6 +7,7 @@ import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
+import com.google.gson.annotations.Expose;
 
 import java.io.Serializable;
 
@@ -27,17 +28,34 @@ public class Task implements Serializable {
     private Key key;
     
     @Persistent
+    @Expose
     private String title;
     
     @Persistent
+    @Expose
     private String creator;
     
     @Persistent
+    @Expose
     private Date createDate;
+    
+    @Persistent
+    @Expose
+    private Long id;
     
     public Long getKey()
     {
     	return key.getId();
+    }
+    
+    public Long getID()
+    {
+    	return id;
+    }
+    
+    public void setID(Long id)
+    {
+    	this.id = id;
     }
     
     public Task(String title, String creator, Date createDate)
