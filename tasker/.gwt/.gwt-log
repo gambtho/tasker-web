@@ -7822,6 +7822,7 @@ Translatable source found in...
 Found 2254 cached units.  Used 2254 / 2254 units from cache.
 Removing invalidated units
 Finding entry point classes
+<<<<<<< HEAD
 Module location: jar:file:/Users/Tom/Applications/eclipse/plugins/com.google.gwt.eclipse.sdkbundle_2.4.0.v201206290132-rel-r37/gwt-2.4.0/gwt-user.jar!/com/google/gwt/user/User.gwt.xml
 Loading inherited module 'com.google.gwt.animation.Animation'
    Module location: jar:file:/Users/Tom/Applications/eclipse/plugins/com.google.gwt.eclipse.sdkbundle_2.4.0.v201206290132-rel-r37/gwt-2.4.0/gwt-user.jar!/com/google/gwt/animation/Animation.gwt.xml
@@ -9778,3 +9779,5 @@ Translatable source found in...
 Found 2254 cached units.  Used 2254 / 2254 units from cache.
 Removing invalidated units
 Finding entry point classes
+=======
+>>>>>>> d39d2d7b520751b19283bba1ea85aef4c2a2f5aa
