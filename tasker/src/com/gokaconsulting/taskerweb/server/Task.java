@@ -20,12 +20,20 @@ public class Task implements Serializable {
 	@Transient
 	private static final long serialVersionUID = -5660588353160363359L;
 
-	//@Transient
-	//private static Logger logger = Logger.getLogger(Task.class.getName());
-	
     @PrimaryKey
     @Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
     private Key key;
+    
+    public Task(String title, String creator, Date createDate, String taskDescription, Date dueDate, String completor, String status)
+    {
+    	this.title = title;
+    	this.creator = creator;
+    	this.createDate = createDate;
+    	this.dueDate = dueDate;
+    	this.completor = completor;
+    	this.status = status;
+    	this.taskDescription = taskDescription;
+    }
     
     @Persistent
     @Expose
@@ -41,30 +49,43 @@ public class Task implements Serializable {
     
     @Persistent
     @Expose
-    private Long id;
+    private String taskDescription;
+    
+	@Persistent
+    @Expose
+    private Date dueDate;
+    
+    @Persistent
+    @Expose
+    private Date completedDate;
+    
+    @Persistent
+    @Expose
+    private String completor;
+    
+    @Persistent
+    @Expose
+    private String status;
+    
+    @Persistent
+    @Expose
+    private Long taskID;
     
     public Long getKey()
     {
     	return key.getId();
     }
     
-    public Long getID()
+    public Long getTaskID()
     {
-    	return id;
+    	return taskID;
     }
     
-    public void setID(Long id)
+    public void setTaskID(Long taskID)
     {
-    	this.id = id;
+    	this.taskID = taskID;
     }
-    
-    public Task(String title, String creator, Date createDate)
-    {
-    	this.title = title;
-    	this.creator = creator;
-    	this.createDate = createDate;
-    }
-    
+        
     public String getTitle() {
     	return title;
     }
@@ -89,5 +110,43 @@ public class Task implements Serializable {
     	this.createDate = createDate;
     }
     
-    
+    public String getTaskDescription() {
+		return taskDescription;
+	}
+
+	public void setTaskDescription(String taskDescription) {
+		this.taskDescription = taskDescription;
+	}
+
+	public Date getDueDate() {
+		return dueDate;
+	}
+
+	public void setDueDate(Date dueDate) {
+		this.dueDate = dueDate;
+	}
+
+	public Date getCompletedDate() {
+		return completedDate;
+	}
+
+	public void setCompletedDate(Date completedDate) {
+		this.completedDate = completedDate;
+	}
+
+	public String getCompletor() {
+		return completor;
+	}
+
+	public void setCompletor(String completor) {
+		this.completor = completor;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
 }

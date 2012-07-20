@@ -1,10 +1,10 @@
-<!-- Indices written at Fri, 20 Jul 2012 11:42:07 EDT -->
+<!-- Indices written at Fri, 20 Jul 2012 15:31:51 EDT -->
 
 <datastore-indexes>
 
-    <!-- Used 5 times in query history -->
+    <!-- Used 2 times in query history -->
     <datastore-index kind="Task" ancestor="false" source="auto">
-        <property name="creator" direction="asc"/>
+        <property name="completor" direction="asc"/>
         <property name="createDate" direction="desc"/>
     </datastore-index>
 

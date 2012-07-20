@@ -5,16 +5,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.text.ParseException;
 import java.util.logging.Logger;
-import java.util.Enumeration; 
 
 import java.util.Date;
-import java.util.Map;
 import java.text.SimpleDateFormat;
 import java.text.DateFormat;
-
 
 import javax.jdo.PersistenceManager;
 import com.google.appengine.api.datastore.KeyFactory;
@@ -29,121 +25,116 @@ import com.gokaconsulting.taskerweb.server.Task;
 import com.gokaconsulting.taskerweb.server.PMF;
 
 /*
-import javax.jdo.PersistenceManagerFactory;
-import javax.jdo.JDOHelper;
-import com.google.appengine.api.users.User;
-import com.google.appengine.api.users.UserService;
-import com.google.appengine.api.users.UserServiceFactory;
-import com.google.appengine.api.memcache.MemcacheService;
-import com.google.appengine.api.memcache.MemcacheServiceException;
-import com.google.appengine.api.memcache.MemcacheServiceFactory;
-*/
+ import java.io.PrintWriter;
+ import javax.jdo.PersistenceManagerFactory;
+ import javax.jdo.JDOHelper;
+ import com.google.appengine.api.users.User;
+ import com.google.appengine.api.users.UserService;
+ import com.google.appengine.api.users.UserServiceFactory;
+ import com.google.appengine.api.memcache.MemcacheService;
+ import com.google.appengine.api.memcache.MemcacheServiceException;
+ import com.google.appengine.api.memcache.MemcacheServiceFactory;
+ */
 
 public class TaskServlet extends HttpServlet {
 	private static final long serialVersionUID = 6608053225431400157L;
 	private final Logger logger = Logger.getLogger(TaskServlet.class.getName());
-	
+
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
-		
-		
+
 		PersistenceManager pm = PMF.get().getPersistenceManager();
-		Gson gson = new GsonBuilder()
-					.excludeFieldsWithoutExposeAnnotation()
-					.create();
-		
-		String taskID = req.getParameter("task");
+		Gson gson = new GsonBuilder().excludeFieldsWithoutExposeAnnotation()
+				.create();
+
+		String taskID = req.getParameter("taskID");
 		String userID = req.getParameter("user");
-		if(taskID!=null)
-		{
+		if (taskID != null) {
 			logger.info("Task requested: " + taskID);
 
+			try {
+				Key k = KeyFactory.createKey(Task.class.getSimpleName(),
+						Long.valueOf(taskID));
+				Task t = pm.getObjectById(Task.class, k);
+				logger.info("Title is: " + t.getTitle());
+				String json = gson.toJson(t);
+				json = "{\"Task\":" + json;
 
-		    try {
-		    	Key k = KeyFactory.createKey(Task.class.getSimpleName(), Long.valueOf(taskID));
-		        Task t = pm.getObjectById(Task.class, k);
-		        logger.info("Title is: " + t.getTitle());
-		        String json = gson.toJson(t);
-		        json = "{\"Task\":" + json;
-		        
-		        resp.setContentType("text/html"); 
-		        resp.setCharacterEncoding("utf-8"); 
-		        resp.getWriter().write(json);
-		        
-		    } finally {
-		        pm.close();
-		    }	
-		}
-		else
-		{
-			//return all tasks
-			logger.info("Returning all tasks for: " + userID);
+				resp.setContentType("text/html");
+				resp.setCharacterEncoding("utf-8");
+				resp.getWriter().write(json);
 
-		        Query q = pm.newQuery(Task.class);
-		        q.setFilter("creator == userID");
-		        q.setOrdering("createDate desc");
-		        q.declareParameters("String userID");
-		        
-		        try {
-		        	
-		        
-		        @SuppressWarnings("unchecked")
-				List<Task> results = (List<Task>)q.execute(userID);
-		        if(!results.isEmpty()) {
-		        	//resp.getWriter().write("{\"Tasks\":[");
-		        	logger.info("Count of tasks found for user: " + userID + " is: " + results.size());
-		        	for (Task t: results)
-		        	{
-		        		gson.toJson(t, resp.getWriter());
-		        	}
-		        	//resp.getWriter().write("]}");
-		        }
-		        else
-		        {
-		        	logger.info("No tasks found for user: " + userID);
-		        }
-		        resp.setContentType("application/json"); 
-		        //resp.setCharacterEncoding("utf-8"); 
-		        
-		    } finally {
-		        pm.close();
-		    }	
+			} finally {
+				pm.close();
+			}
+		} else {
+			// return all tasks
+			if (userID != null) {
+				logger.info("Returning all tasks for: " + userID);
+
+				Query q = pm.newQuery(Task.class);
+				q.setFilter("completor == userID");
+				q.setOrdering("createDate desc");
+				q.declareParameters("String userID");
+
+				try {
+
+					@SuppressWarnings("unchecked")
+					List<Task> results = (List<Task>) q.execute(userID);
+					if (!results.isEmpty()) {
+						// resp.getWriter().write("{\"Tasks\":[");
+						logger.info("Count of tasks found for user: " + userID
+								+ " is: " + results.size());
+						for (Task t : results) {
+							logger.info("task ID is: " + t.getTaskID());
+							gson.toJson(t, resp.getWriter());
+						}
+						// resp.getWriter().write("]}");
+					} else {
+						logger.info("No tasks found for user: " + userID);
+					}
+					resp.setContentType("application/json");
+					// resp.setCharacterEncoding("utf-8");
+
+				} finally {
+					pm.close();
+				}
+			}
 		}
 	}
-	
+
 	public void doDelete(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
-		
+
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 
-		String taskID = req.getParameter("task");
-//		String userID = req.getParameter("user");
-		if(taskID!=null && Integer.parseInt(taskID)>0)
-		{
+		String taskID = req.getParameter("taskID");
+		// String userID = req.getParameter("user");
+		if (taskID != null && Integer.parseInt(taskID) > 0) {
 			logger.info("Delete requested for Task: " + taskID);
 
-		    try {
-		    	Key k = KeyFactory.createKey(Task.class.getSimpleName(), Long.valueOf(taskID));
-		        Task t = pm.getObjectById(Task.class, k);
-		        pm.deletePersistent(t);
-		        logger.info("Delete succesful for Task: " + taskID);        
-		    } finally {
-		        pm.close();
-		    }	
-		}
-		else {
-			//TODO: error if no task is passed to delete
+			try {
+				Key k = KeyFactory.createKey(Task.class.getSimpleName(),
+						Long.valueOf(taskID));
+				Task t = pm.getObjectById(Task.class, k);
+				pm.deletePersistent(t);
+				logger.info("Delete succesful for Task: " + taskID);
+			} finally {
+				pm.close();
+			}
+		} else {
+			// TODO: error if no task is passed to delete
 			logger.warning("Delete request without task ID");
 		}
 		resp.setContentType("application/json");
 	}
-	
+
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
 
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 
-		String taskID = req.getParameter("task");
+		String taskID = req.getParameter("taskID");
 
 		if (taskID != null) {
 
@@ -153,84 +144,109 @@ public class TaskServlet extends HttpServlet {
 						Long.valueOf(taskID));
 				Task t = pm.getObjectById(Task.class, k);
 
-
-
 				String title = req.getParameter("title");
 				String creator = req.getParameter("creator");
-				// TODO: shouldn't really allow update of create date
-				/*
-				DateFormat formatter = new SimpleDateFormat("dd-MM-yy-HH-mm-ss");
-				Date createDate = null;
-				if (req.getParameter("createDate") != null) {
-					try {
-						createDate = (Date) formatter.parse(req
-								.getParameter("createDate"));
-					} catch (ParseException e) {
-						logger.severe("Failed to convert create date: "
-								+ req.getParameter("createDate")
-								+ " for update");
+				String taskDescription = req.getParameter("taskDescription");
+				String completor = req.getParameter("completor");
+				String status = req.getParameter("status");
+				String dueParm = req.getParameter("dueDate");
+				String completedParm = req.getParameter("completedDate");
 
+				Date dueDate = null;
+				Date completedDate = null;
+
+				DateFormat formatter = new SimpleDateFormat("yy-MM-dd HH:mm:ss Z");
+
+				if (dueParm != null) {
+					try {
+						logger.info("Due date will be: " + dueParm);
+						dueDate = (Date) formatter.parse(dueParm);
+					} catch (ParseException e) {
+						logger.severe("Failed to convert due date: " + dueParm
+								+ " for update");
 					}
 				}
-				*/
+				if (completedParm != null) {
+					try {
+						completedDate = (Date) formatter.parse(completedParm);
+					} catch (ParseException e) {
+						logger.severe("Failed to convert completed date: "
+								+ completedParm + " for update");
+					}
+				}
+
 				t.setTitle(title);
-//				t.setCreateDate(createDate);
+				t.setCompletor(completor);
+				t.setStatus(status);
+				t.setTaskDescription(taskDescription);
+				t.setDueDate(dueDate);
+				t.setCompletedDate(completedDate);
 				t.setCreator(creator);
-				
+
 				Gson gson = new GsonBuilder()
-				.excludeFieldsWithoutExposeAnnotation()
-				.create();
-				
-        		gson.toJson(t, resp.getWriter());
-        		resp.setContentType("application/json"); 
-				
+						.excludeFieldsWithoutExposeAnnotation().create();
+
+				gson.toJson(t, resp.getWriter());
+				resp.setContentType("application/json");
+
 			} finally {
 				pm.close();
 			}
 		}
-		
+
 		else {
 			logger.severe("Post attempted without taskID");
 		}
 
 	}
+
 	public void doPut(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
-    	
-		
-		DateFormat formatter = new SimpleDateFormat("dd-MM-yy-HH-mm-ss");
-		
-    	String title = req.getParameter("title");
-    	String creator = req.getParameter("creator");
-    	logger.info("Task to be addeed: " + title);
-    	
-    	Date createDate = null;
-    	/*
-    	try {
-			createDate = (Date)formatter.parse(req.getParameter("createDate"));
-		} catch (ParseException e) {
-			logger.severe("Failed to convert create date: " + req.getParameter("createDate") + " for insert");
+
+		String title = req.getParameter("title");
+		String creator = req.getParameter("creator");
+		String taskDescription = req.getParameter("taskDescription");
+		String completor = req.getParameter("completor");
+		String status = req.getParameter("status");
+		String dueParm = req.getParameter("dueDate");
+
+		logger.info("Task to be addeed: " + title);
+
+		Date createDate = new Date();
+		Date dueDate = null;
+
+//		DateFormat formatter = new SimpleDateFormat("dd-MM-yy-HH-mm");
+		DateFormat formatter = new SimpleDateFormat("yy-MM-dd HH:mm:ss Z");
+
+		if (dueParm != null) {
+			try {
+				dueDate = (Date) formatter.parse(dueParm);
+			} catch (ParseException e) {
+				logger.severe("Failed to convert due date: " + dueParm
+						+ " for insert");
+			}
 		}
-    	*/
-    	Task t = new Task(title, creator, createDate);
-    	
-    	PersistenceManager pm = PMF.get().getPersistenceManager();
-    	
-    	try {
-    		pm.makePersistent(t);
-    		logger.info("New task saved, title: " + t.getTitle() + " id: " + t.getKey());
-    		//TODO: Find better way to get ID for gson
-    		t.setID(t.getKey());
-			
-    		Gson gson = new GsonBuilder()
-			.excludeFieldsWithoutExposeAnnotation()
-			.create();
-			
-    		gson.toJson(t, resp.getWriter());
-    		resp.setContentType("application/json"); 
-    	
-    	} finally {
-    		pm.close();
-    	}
+
+		Task t = new Task(title, creator, createDate, taskDescription, dueDate,
+				completor, status);
+
+		PersistenceManager pm = PMF.get().getPersistenceManager();
+
+		try {
+			pm.makePersistent(t);
+			logger.info("New task saved, title: " + t.getTitle() + " id: "
+					+ t.getKey());
+			// TODO: Find better way to get ID for gson
+			t.setTaskID(t.getKey());
+
+			Gson gson = new GsonBuilder()
+					.excludeFieldsWithoutExposeAnnotation().create();
+
+			gson.toJson(t, resp.getWriter());
+			resp.setContentType("application/json");
+
+		} finally {
+			pm.close();
+		}
 	}
 }
