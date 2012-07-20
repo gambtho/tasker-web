@@ -8,8 +8,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.ParseException;
 import java.util.logging.Logger;
+import java.util.Enumeration; 
 
 import java.util.Date;
+import java.util.Map;
 import java.text.SimpleDateFormat;
 import java.text.DateFormat;
 
@@ -20,6 +22,7 @@ import com.google.appengine.api.datastore.Key;
 import com.google.gson.Gson;
 import java.util.List;
 import javax.jdo.Query;
+
 import com.google.gson.GsonBuilder;
 
 import com.gokaconsulting.taskerweb.server.Task;
@@ -148,12 +151,14 @@ public class TaskServlet extends HttpServlet {
 						Long.valueOf(taskID));
 				Task t = pm.getObjectById(Task.class, k);
 
-				DateFormat formatter = new SimpleDateFormat("dd-MM-yy-HH-mm-ss");
-				Date createDate = null;
+
 
 				String title = req.getParameter("title");
 				String creator = req.getParameter("creator");
 				// TODO: shouldn't really allow update of create date
+				/*
+				DateFormat formatter = new SimpleDateFormat("dd-MM-yy-HH-mm-ss");
+				Date createDate = null;
 				if (req.getParameter("createDate") != null) {
 					try {
 						createDate = (Date) formatter.parse(req
@@ -165,14 +170,25 @@ public class TaskServlet extends HttpServlet {
 
 					}
 				}
-				
+				*/
 				t.setTitle(title);
-				t.setCreateDate(createDate);
+//				t.setCreateDate(createDate);
 				t.setCreator(creator);
+				
+				Gson gson = new GsonBuilder()
+				.excludeFieldsWithoutExposeAnnotation()
+				.create();
+				
+        		gson.toJson(t, resp.getWriter());
+        		resp.setContentType("application/json"); 
 				
 			} finally {
 				pm.close();
 			}
+		}
+		
+		else {
+			logger.severe("Post attempted without taskID");
 		}
 
 	}
