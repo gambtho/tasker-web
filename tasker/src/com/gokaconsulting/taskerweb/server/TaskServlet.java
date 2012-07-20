@@ -118,7 +118,7 @@ public class TaskServlet extends HttpServlet {
 
 		String taskID = req.getParameter("task");
 //		String userID = req.getParameter("user");
-		if(taskID!=null)
+		if(taskID!=null && Integer.parseInt(taskID)>0)
 		{
 			logger.info("Delete requested for Task: " + taskID);
 
@@ -133,7 +133,9 @@ public class TaskServlet extends HttpServlet {
 		}
 		else {
 			//TODO: error if no task is passed to delete
+			logger.warning("Delete request without task ID");
 		}
+		resp.setContentType("application/json");
 	}
 	
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
@@ -195,17 +197,21 @@ public class TaskServlet extends HttpServlet {
 	public void doPut(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
     	
+		
 		DateFormat formatter = new SimpleDateFormat("dd-MM-yy-HH-mm-ss");
 		
     	String title = req.getParameter("title");
     	String creator = req.getParameter("creator");
+    	logger.info("Task to be addeed: " + title);
+    	
     	Date createDate = null;
+    	/*
     	try {
 			createDate = (Date)formatter.parse(req.getParameter("createDate"));
 		} catch (ParseException e) {
 			logger.severe("Failed to convert create date: " + req.getParameter("createDate") + " for insert");
 		}
-    	
+    	*/
     	Task t = new Task(title, creator, createDate);
     	
     	PersistenceManager pm = PMF.get().getPersistenceManager();
@@ -215,6 +221,14 @@ public class TaskServlet extends HttpServlet {
     		logger.info("New task saved, title: " + t.getTitle() + " id: " + t.getKey());
     		//TODO: Find better way to get ID for gson
     		t.setID(t.getKey());
+			
+    		Gson gson = new GsonBuilder()
+			.excludeFieldsWithoutExposeAnnotation()
+			.create();
+			
+    		gson.toJson(t, resp.getWriter());
+    		resp.setContentType("application/json"); 
+    	
     	} finally {
     		pm.close();
     	}
