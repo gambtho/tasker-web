@@ -81,18 +81,14 @@ public class TaskServlet extends HttpServlet {
 
 					@SuppressWarnings("unchecked")
 					List<Task> results = (List<Task>) q.execute(userID);
-					if (!results.isEmpty()) {
-						// resp.getWriter().write("{\"Tasks\":[");
-						logger.info("Count of tasks found for user: " + userID
-								+ " is: " + results.size());
+					logger.info("Count of tasks found for user: " + userID
+							+ " is: " + results.size());
+					gson.toJson(results, resp.getWriter());
+/*					if (!results.isEmpty()) {
 						for (Task t : results) {
 							logger.info("task ID is: " + t.getTaskID());
-							gson.toJson(t, resp.getWriter());
 						}
-						// resp.getWriter().write("]}");
-					} else {
-						logger.info("No tasks found for user: " + userID);
-					}
+*/					
 					resp.setContentType("application/json");
 					// resp.setCharacterEncoding("utf-8");
 
@@ -119,6 +115,10 @@ public class TaskServlet extends HttpServlet {
 				Task t = pm.getObjectById(Task.class, k);
 				pm.deletePersistent(t);
 				logger.info("Delete succesful for Task: " + taskID);
+			} catch (Exception e){
+				logger.severe(e.getStackTrace().toString());
+				logger.severe("Unable to delete Task: " + taskID);
+				resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Task: " + " not found for deletion");
 			} finally {
 				pm.close();
 			}
