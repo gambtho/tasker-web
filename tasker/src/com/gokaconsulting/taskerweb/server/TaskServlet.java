@@ -7,14 +7,31 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.logging.Logger;
+import org.apache.commons.lang.ArrayUtils;
+import java.io.InputStream;
+
 
 import java.util.Date;
 import java.text.SimpleDateFormat;
 import java.text.DateFormat;
+import java.nio.ByteBuffer;
+
+import org.apache.commons.fileupload.FileItemStream;
+import org.apache.commons.fileupload.FileItemIterator;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 
 import javax.jdo.PersistenceManager;
 import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.Key;
+
+import com.google.appengine.api.blobstore.BlobKey;
+import com.google.appengine.api.blobstore.BlobstoreService;
+import com.google.appengine.api.blobstore.BlobstoreServiceFactory;
+import com.google.appengine.api.files.AppEngineFile;
+import com.google.appengine.api.files.FileService;
+import com.google.appengine.api.files.FileServiceFactory;
+import com.google.appengine.api.files.FileWriteChannel;
+
 import com.google.gson.Gson;
 import java.util.List;
 import javax.jdo.Query;
@@ -23,6 +40,8 @@ import com.google.gson.GsonBuilder;
 
 import com.gokaconsulting.taskerweb.server.Task;
 import com.gokaconsulting.taskerweb.server.PMF;
+
+
 
 /*
  import java.io.PrintWriter;
@@ -84,11 +103,11 @@ public class TaskServlet extends HttpServlet {
 					logger.info("Count of tasks found for user: " + userID
 							+ " is: " + results.size());
 					gson.toJson(results, resp.getWriter());
-/*					if (!results.isEmpty()) {
+					if (!results.isEmpty()) {
 						for (Task t : results) {
-							logger.info("task ID is: " + t.getTaskID());
+							logger.info("task ID is: " + t.getTaskID() + " title is: " + t.getTitle());
 						}
-*/					
+					}
 					resp.setContentType("application/json");
 					// resp.setCharacterEncoding("utf-8");
 
@@ -209,6 +228,8 @@ public class TaskServlet extends HttpServlet {
 		String completor = req.getParameter("completor");
 		String status = req.getParameter("status");
 		String dueParm = req.getParameter("dueDate");
+		String beforePhotoId = "-1";
+		String afterPhotoId = "-1";
 
 		logger.info("Task to be addeed: " + title);
 
@@ -227,9 +248,51 @@ public class TaskServlet extends HttpServlet {
 			}
 		}
 
-		Task t = new Task(title, creator, createDate, taskDescription, dueDate,
-				completor, status);
+		
+		try {
+		ServletFileUpload upload = new ServletFileUpload();
 
+
+	      FileItemIterator iterator = upload.getItemIterator(req);
+	      while (iterator.hasNext()) {
+	        FileItemStream item = iterator.next();
+	        InputStream stream = item.openStream();
+
+	        if (item.isFormField()) {
+	          logger.severe(" Rceived an insert with a form field: " + item.getFieldName());
+	        } else {
+	          logger.warning("Received an insert with an uploaded file: " + item.getFieldName() +
+	                      ", name = " + item.getName());
+	          
+	  	    FileService fileService = FileServiceFactory.getFileService();
+
+		    AppEngineFile file = fileService.createNewBlobFile("image/jpeg");
+		    boolean lock = true;
+		    FileWriteChannel writeChannel = fileService
+		            .openWriteChannel(file, lock);
+		    
+	          int len;
+	          byte[] buffer = new byte[8192];
+	          while ((len = stream.read(buffer, 0, buffer.length)) != -1) {
+	        	  writeChannel.write(ByteBuffer.wrap(buffer, 0, len));
+	          }
+	          
+			    writeChannel.closeFinally();
+
+			  beforePhotoId =  fileService.getBlobKey(file).getKeyString(); 
+			  logger.info("Image succesfully stored, key: " + beforePhotoId);
+	          
+	        }
+	      }
+		} catch (Exception e) {
+			logger.severe(e.getStackTrace().toString());
+			logger.severe("Error processing image file for adding task for user: "
+			+ creator + " with title: " + title);
+		}
+		
+		Task t = new Task(title, creator, createDate, taskDescription, dueDate,
+				completor, status, beforePhotoId, afterPhotoId);
+		
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 
 		try {
@@ -248,5 +311,41 @@ public class TaskServlet extends HttpServlet {
 		} finally {
 			pm.close();
 		}
+	}
+	
+	public byte[] readImageData(BlobKey blobKey, long blobSize) {
+	    BlobstoreService blobStoreService = BlobstoreServiceFactory
+	            .getBlobstoreService();
+	    byte[] allTheBytes = new byte[0];
+	    long amountLeftToRead = blobSize;
+	    long startIndex = 0;
+	    while (amountLeftToRead > 0) {
+	        long amountToReadNow = Math.min(
+	                BlobstoreService.MAX_BLOB_FETCH_SIZE - 1, amountLeftToRead);
+
+	        byte[] chunkOfBytes = blobStoreService.fetchData(blobKey,
+	                startIndex, startIndex + amountToReadNow);
+
+	        allTheBytes = ArrayUtils.addAll(allTheBytes, chunkOfBytes);
+
+	        amountLeftToRead -= amountToReadNow;
+	        startIndex += amountToReadNow;
+	    }
+
+	    return allTheBytes;
+	}
+
+	public BlobKey writeImageData(byte[] bytes) throws IOException {
+	    FileService fileService = FileServiceFactory.getFileService();
+
+	    AppEngineFile file = fileService.createNewBlobFile("image/jpeg");
+	    boolean lock = true;
+	    FileWriteChannel writeChannel = fileService
+	            .openWriteChannel(file, lock);
+
+	    writeChannel.write(ByteBuffer.wrap(bytes));
+	    writeChannel.closeFinally();
+
+	    return fileService.getBlobKey(file);
 	}
 }

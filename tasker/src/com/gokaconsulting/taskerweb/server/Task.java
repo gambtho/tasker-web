@@ -24,7 +24,9 @@ public class Task implements Serializable {
     @Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
     private Key key;
     
-    public Task(String title, String creator, Date createDate, String taskDescription, Date dueDate, String completor, String status)
+    public Task(String title, String creator, Date createDate, 
+    		String taskDescription, Date dueDate, String completor, String status, 
+    		String beforePhotoId, String afterPhotoId)
     {
     	this.title = title;
     	this.creator = creator;
@@ -33,6 +35,8 @@ public class Task implements Serializable {
     	this.completor = completor;
     	this.status = status;
     	this.taskDescription = taskDescription;
+    	this.beforePhotoId = beforePhotoId;
+    	this.afterPhotoId = afterPhotoId;
     }
     
     @Persistent
@@ -71,7 +75,31 @@ public class Task implements Serializable {
     @Expose
     private Long taskID;
     
-    public Long getKey()
+    @Persistent
+    @Expose
+    private String beforePhotoId;
+    
+    @Persistent
+    @Expose
+    private String afterPhotoId;
+    
+    public String getAfterPhotoId() {
+		return afterPhotoId;
+	}
+
+	public void setAfterPhotoId(String afterPhotoId) {
+		this.afterPhotoId = afterPhotoId;
+	}
+
+	public String getBeforeId() {
+		return beforePhotoId;
+	}
+
+	public void setBeforeId(String blobKey) {
+		this.beforePhotoId = blobKey;
+	}
+
+	public Long getKey()
     {
     	return key.getId();
     }
