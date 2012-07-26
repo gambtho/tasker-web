@@ -24,7 +24,12 @@ public class Task implements Serializable {
     @Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
     private Key key;
     
-    public Task(String title, String creator, Date createDate, 
+	public Key getKey()
+    {
+    	return key;
+    }
+    
+	public Task(String title, String creator, Date createDate, 
     		String taskDescription, Date dueDate, String completor, String status, 
     		String beforePhotoId, String afterPhotoId)
     {
@@ -91,19 +96,14 @@ public class Task implements Serializable {
 		this.afterPhotoId = afterPhotoId;
 	}
 
-	public String getBeforeId() {
+	public String getBeforePhotoId() {
 		return beforePhotoId;
 	}
 
-	public void setBeforeId(String blobKey) {
+	public void setBeforePhotoId(String blobKey) {
 		this.beforePhotoId = blobKey;
 	}
 
-	public Long getKey()
-    {
-    	return key.getId();
-    }
-    
     public Long getTaskID()
     {
     	return taskID;

@@ -102,19 +102,26 @@ public class TaskServlet extends HttpServlet {
 					List<Task> results = (List<Task>) q.execute(userID);
 					logger.info("Count of tasks found for user: " + userID
 							+ " is: " + results.size());
-					gson.toJson(results, resp.getWriter());
 					if (!results.isEmpty()) {
 						for (Task t : results) {
 							logger.info("task ID is: " + t.getTaskID() + " title is: " + t.getTitle());
+							if(t.getTaskID() == null)
+							{
+								//TODO: Figure out why this is happening
+								logger.severe("Task id for task: " + t.getKey().getId() + " was 0");
+								t.setTaskID(t.getKey().getId());
+							}
 						}
 					}
+					gson.toJson(results, resp.getWriter());
+
 					resp.setContentType("application/json");
 					// resp.setCharacterEncoding("utf-8");
 
 				} finally {
 					pm.close();
 				}
-			}
+			}		
 		}
 	}
 
@@ -170,7 +177,7 @@ public class TaskServlet extends HttpServlet {
 				String status = req.getParameter("status");
 				String dueParm = req.getParameter("dueDate");
 				String completedParm = req.getParameter("completedDate");
-
+				
 				Date dueDate = null;
 				Date completedDate = null;
 
@@ -193,6 +200,51 @@ public class TaskServlet extends HttpServlet {
 								+ completedParm + " for update");
 					}
 				}
+				
+				try {
+					ServletFileUpload upload = new ServletFileUpload();
+
+
+				      FileItemIterator iterator = upload.getItemIterator(req);
+				      while (iterator.hasNext()) {
+				        FileItemStream item = iterator.next();
+				        InputStream stream = item.openStream();
+
+				        if (item.isFormField()) {
+				          logger.severe(" Rceived an update with a form field: " + item.getFieldName());
+				        } else {
+				          logger.warning("Received an update with an uploaded file: " + item.getFieldName() +
+				                      ", name = " + item.getName());
+ 
+				  	    FileService fileService = FileServiceFactory.getFileService();
+
+					    AppEngineFile file = fileService.createNewBlobFile("image/png");
+					    boolean lock = true;
+					    FileWriteChannel writeChannel = fileService
+					            .openWriteChannel(file, lock);
+					    
+				          int len;
+				          byte[] buffer = new byte[8192];
+				          while ((len = stream.read(buffer, 0, buffer.length)) != -1) {
+				        	  writeChannel.write(ByteBuffer.wrap(buffer, 0, len));
+				          }
+				          
+						    writeChannel.closeFinally();
+
+						    
+						    
+						  t.setBeforePhotoId(fileService.getBlobKey(file).getKeyString());
+						  
+						  
+						  logger.info("Image succesfully stored");
+				          
+				        }
+				      }
+					} catch (Exception e) {
+						logger.severe(e.getStackTrace().toString());
+						logger.severe("Error processing image file for adding task for user: "
+						+ creator + " with title: " + title);
+					}
 
 				t.setTitle(title);
 				t.setCompletor(completor);
@@ -266,7 +318,7 @@ public class TaskServlet extends HttpServlet {
 	          
 	  	    FileService fileService = FileServiceFactory.getFileService();
 
-		    AppEngineFile file = fileService.createNewBlobFile("image/jpeg");
+		    AppEngineFile file = fileService.createNewBlobFile("image/png");
 		    boolean lock = true;
 		    FileWriteChannel writeChannel = fileService
 		            .openWriteChannel(file, lock);
@@ -300,7 +352,11 @@ public class TaskServlet extends HttpServlet {
 			logger.info("New task saved, title: " + t.getTitle() + " id: "
 					+ t.getKey());
 			// TODO: Find better way to get ID for gson
-			t.setTaskID(t.getKey());
+			t.setTaskID(t.getKey().getId());
+			if(t.getTaskID()==null || t.getTaskID() == 0)
+			{
+				logger.severe("Invalid task id created for task with title: " + t.getTitle());
+			}
 
 			Gson gson = new GsonBuilder()
 					.excludeFieldsWithoutExposeAnnotation().create();
@@ -311,6 +367,11 @@ public class TaskServlet extends HttpServlet {
 		} finally {
 			pm.close();
 		}
+	}
+	
+	public String photoKey()
+	{
+		return "placeholder";
 	}
 	
 	public byte[] readImageData(BlobKey blobKey, long blobSize) {
