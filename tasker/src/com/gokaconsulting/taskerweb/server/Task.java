@@ -31,7 +31,7 @@ public class Task implements Serializable {
     
 	public Task(String title, String creator, Date createDate, 
     		String taskDescription, Date dueDate, String completor, String status, 
-    		String beforePhotoId, String afterPhotoId)
+    		String beforePhotoId, String beforePhotoUrl)
     {
     	this.title = title;
     	this.creator = creator;
@@ -41,7 +41,7 @@ public class Task implements Serializable {
     	this.status = status;
     	this.taskDescription = taskDescription;
     	this.beforePhotoId = beforePhotoId;
-    	this.afterPhotoId = afterPhotoId;
+    	this.beforePhotoUrl = beforePhotoUrl;
     }
     
     @Persistent
@@ -84,9 +84,33 @@ public class Task implements Serializable {
     @Expose
     private String beforePhotoId;
     
+	@Persistent
+    @Expose
+    private String beforePhotoUrl;
+    
+    @Persistent
+    @Expose
+    private String afterPhotoUrl;
+    
     @Persistent
     @Expose
     private String afterPhotoId;
+    
+    public String getBeforePhotoUrl() {
+		return beforePhotoUrl;
+	}
+
+	public void setBeforePhotoUrl(String beforePhotoUrl) {
+		this.beforePhotoUrl = beforePhotoUrl;
+	}
+
+	public String getAfterPhotoUrl() {
+		return afterPhotoUrl;
+	}
+
+	public void setAfterPhotoUrl(String afterPhotoUrl) {
+		this.afterPhotoUrl = afterPhotoUrl;
+	}
     
     public String getAfterPhotoId() {
 		return afterPhotoId;
