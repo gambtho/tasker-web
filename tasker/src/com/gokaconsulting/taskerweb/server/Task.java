@@ -1,5 +1,6 @@
 package com.gokaconsulting.taskerweb.server;
 
+import com.google.appengine.api.blobstore.BlobKey;
 import com.google.appengine.api.datastore.Key;
 
 import java.util.Date;
@@ -31,7 +32,7 @@ public class Task implements Serializable {
     
 	public Task(String title, String creator, Date createDate, 
     		String taskDescription, Date dueDate, String completor, String status, 
-    		String beforePhotoId, String beforePhotoUrl)
+    		String beforePhotoUrl, BlobKey beforeKey)
     {
     	this.title = title;
     	this.creator = creator;
@@ -40,8 +41,8 @@ public class Task implements Serializable {
     	this.completor = completor;
     	this.status = status;
     	this.taskDescription = taskDescription;
-    	this.beforePhotoId = beforePhotoId;
     	this.beforePhotoUrl = beforePhotoUrl;
+    	this.beforeKey = beforeKey;
     }
     
     @Persistent
@@ -80,9 +81,11 @@ public class Task implements Serializable {
     @Expose
     private Long taskID;
     
-    @Persistent
-    @Expose
-    private String beforePhotoId;
+	@Persistent
+    private BlobKey beforeKey;
+    
+    @Persistent 
+    private BlobKey afterKey;
     
 	@Persistent
     @Expose
@@ -91,10 +94,22 @@ public class Task implements Serializable {
     @Persistent
     @Expose
     private String afterPhotoUrl;
-    
-    @Persistent
-    @Expose
-    private String afterPhotoId;
+
+    public BlobKey getBeforeKey() {
+		return beforeKey;
+	}
+
+	public void setBeforeKey(BlobKey beforeKey) {
+		this.beforeKey = beforeKey;
+	}
+
+	public BlobKey getAfterKey() {
+		return afterKey;
+	}
+
+	public void setAfterKey(BlobKey afterKey) {
+		this.afterKey = afterKey;
+	}
     
     public String getBeforePhotoUrl() {
 		return beforePhotoUrl;
@@ -112,22 +127,6 @@ public class Task implements Serializable {
 		this.afterPhotoUrl = afterPhotoUrl;
 	}
     
-    public String getAfterPhotoId() {
-		return afterPhotoId;
-	}
-
-	public void setAfterPhotoId(String afterPhotoId) {
-		this.afterPhotoId = afterPhotoId;
-	}
-
-	public String getBeforePhotoId() {
-		return beforePhotoId;
-	}
-
-	public void setBeforePhotoId(String blobKey) {
-		this.beforePhotoId = blobKey;
-	}
-
     public Long getTaskID()
     {
     	return taskID;

@@ -15,6 +15,7 @@ import java.text.SimpleDateFormat;
 import java.text.DateFormat;
 import java.text.ParseException;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Date;
 import java.util.List;
@@ -144,8 +145,7 @@ public class TaskServlet extends HttpServlet {
 				pm.deletePersistent(t);
 				logger.info("Delete succesful for Task: " + taskID);
 			} catch (Exception e) {
-				logger.severe(e.getStackTrace().toString());
-				logger.severe("Unable to delete Task: " + taskID);
+				logger.log(Level.SEVERE, "Unable to delete Task: " + taskID, e);
 				resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
 						"Task: " + " not found for deletion");
 			} finally {
@@ -157,7 +157,7 @@ public class TaskServlet extends HttpServlet {
 		}
 		resp.setContentType("application/json");
 	}
-
+	
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
 
@@ -204,63 +204,16 @@ public class TaskServlet extends HttpServlet {
 								+ completedParm + " for update");
 					}
 				}
-
-				try {
-					ServletFileUpload upload = new ServletFileUpload();
-
-					FileItemIterator iterator = upload.getItemIterator(req);
-					while (iterator.hasNext()) {
-						FileItemStream item = iterator.next();
-						InputStream stream = item.openStream();
-
-						if (item.isFormField()) {
-							logger.severe(" Rceived an update with a form field: "
-									+ item.getFieldName());
-						} else {
-							logger.warning("Received an update with an uploaded file: "
-									+ item.getFieldName()
-									+ ", name = "
-									+ item.getName());
-
-							FileService fileService = FileServiceFactory
-									.getFileService();
-
-							AppEngineFile file = fileService
-									.createNewBlobFile("image/png");
-							boolean lock = true;
-							FileWriteChannel writeChannel = fileService
-									.openWriteChannel(file, lock);
-
-							int len;
-							byte[] buffer = new byte[8192];
-							while ((len = stream.read(buffer, 0, buffer.length)) != -1) {
-								writeChannel.write(ByteBuffer.wrap(buffer, 0,
-										len));
-							}
-
-							writeChannel.closeFinally();
-
-							BlobKey tempKey = fileService.getBlobKey(file);
-
-							ImagesService imagesService = ImagesServiceFactory
-									.getImagesService();
-							ServingUrlOptions options = ServingUrlOptions.Builder
-									.withBlobKey(tempKey);
-						
-							
-							t.setBeforePhotoId(tempKey.getKeyString());
-							t.setBeforePhotoUrl(imagesService.getServingUrl(options));
-
-							logger.info("Image succesfully stored");
-
-						}
-					}
-				} catch (Exception e) {
-					logger.severe(e.getStackTrace().toString());
-					logger.severe("Error processing image file for adding task for user: "
-							+ creator + " with title: " + title);
+				
+				BlobKey tempKey = uploadImage(req);
+				
+				if (tempKey != null) {
+					t.setBeforeKey(tempKey);
+					t.setBeforePhotoUrl(getImageUrl(tempKey));
 				}
-
+				
+				logger.info("Completor is: " + t.getCompletor() + " " + completor);
+				
 				t.setTitle(title);
 				t.setCompletor(completor);
 				t.setStatus(status);
@@ -268,7 +221,7 @@ public class TaskServlet extends HttpServlet {
 				t.setDueDate(dueDate);
 				t.setCompletedDate(completedDate);
 				t.setCreator(creator);
-
+				logger.info("Completor is: " + t.getCompletor() + " " + completor);
 				Gson gson = new GsonBuilder()
 						.excludeFieldsWithoutExposeAnnotation().create();
 
@@ -285,22 +238,6 @@ public class TaskServlet extends HttpServlet {
 		}
 
 	}
-	
-	public String getImageUrl(HttpServletRequest req, String key)
-	{
-	    String scheme = req.getScheme();             // http
-	    String serverName = req.getServerName();     // hostname.com
-	    int serverPort = req.getServerPort();        // 80
-	    String contextPath = req.getContextPath();   // /mywebapp
-	    String servletPath = "/image?image=";
-
-
-	    // Reconstruct original requesting URL
-	    String url = scheme+"://"+serverName+":"+serverPort+contextPath+servletPath+key;
-	    logger.info("Image url is: " + url);
-	    return url;
-	}
-
 
 	public void doPut(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
@@ -311,7 +248,7 @@ public class TaskServlet extends HttpServlet {
 		String completor = req.getParameter("completor");
 		String status = req.getParameter("status");
 		String dueParm = req.getParameter("dueDate");
-		String beforePhotoId = "-1";
+		BlobKey beforeKey = null;
 		String beforePhotoUrl = null;
 
 		logger.info("Task to be addeed: " + title);
@@ -330,64 +267,17 @@ public class TaskServlet extends HttpServlet {
 			}
 		}
 
-		try {
-			ServletFileUpload upload = new ServletFileUpload();
-
-			FileItemIterator iterator = upload.getItemIterator(req);
-			
-			while (iterator.hasNext()) {
-				FileItemStream item = iterator.next();
-				InputStream stream = item.openStream();
-
-				if (item.isFormField()) {
-					logger.severe(" Received an insert with a form field: "
-							+ item.getFieldName());
-				} else {
-					logger.info("Received an insert with an uploaded file: "
-							+ item.getFieldName() + ", name = "
-							+ item.getName());
-
-					FileService fileService = FileServiceFactory
-							.getFileService();
-
-					AppEngineFile file = fileService
-							.createNewBlobFile("image/png");
-					boolean lock = true;
-					FileWriteChannel writeChannel = fileService
-							.openWriteChannel(file, lock);
-
-					int len;
-					byte[] buffer = new byte[8192];
-					while ((len = stream.read(buffer, 0, buffer.length)) != -1) {
-						writeChannel.write(ByteBuffer.wrap(buffer, 0, len));
-					}
-
-					writeChannel.closeFinally();	
-			
-					BlobKey tempKey = fileService.getBlobKey(file);
-					
-					ImagesService imagesService = ImagesServiceFactory
-							.getImagesService();
-					ServingUrlOptions options = ServingUrlOptions.Builder
-							.withBlobKey(tempKey);
-				
-					String url = imagesService.getServingUrl(options);
-	
-					beforePhotoId = tempKey.getKeyString();
-					beforePhotoUrl = url;
-					logger.info("Image successfully stored, key: "
-							+ beforePhotoId);
-				}
-			}
-		} catch (Exception e) {
-			logger.warning(e.toString());
-			logger.warning("Error processing image file for adding task for user: "
-					+ creator + " with title: " + title);
+			beforeKey = uploadImage(req);
+		
+		if (beforeKey != null) {
+			beforePhotoUrl = getImageUrl(beforeKey);
 		}
-
+		
+		logger.info("Completor is: " + completor);
+		
 		Task t = new Task(title, creator, createDate, taskDescription, dueDate,
-				completor, status, beforePhotoId, beforePhotoUrl);
-
+				completor, status, beforePhotoUrl, beforeKey);
+		
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 
 		try {
@@ -407,13 +297,87 @@ public class TaskServlet extends HttpServlet {
 				logger.severe("Invalid task id created for task with title: "
 						+ t.getTitle());
 			}
-
-		} catch (Exception e) {
-			logger.severe(e.getStackTrace().toString());
-			logger.severe("Exception saving task");
-
-		} finally {
+		}
+		finally {
 			pm.close();
 		}
 	}
+	
+	public BlobKey uploadImage(HttpServletRequest req) throws IOException
+	{
+		
+		try {
+			ServletFileUpload upload = new ServletFileUpload();
+
+			FileItemIterator iterator = upload.getItemIterator(req);
+			while (iterator.hasNext()) {
+				FileItemStream item = iterator.next();
+				InputStream stream = item.openStream();
+
+				if (item.isFormField()) {
+					logger.severe(" Rceived an update with a form field: "
+							+ item.getFieldName());
+				} else {
+					logger.warning("Received an update with an uploaded file: "
+							+ item.getFieldName()
+							+ ", name = "
+							+ item.getName());
+
+					FileService fileService = FileServiceFactory
+							.getFileService();
+
+					AppEngineFile file = fileService
+							.createNewBlobFile("image/png");
+					boolean lock = true;
+					FileWriteChannel writeChannel = fileService
+							.openWriteChannel(file, lock);
+
+					int len;
+					byte[] buffer = new byte[8192];
+					while ((len = stream.read(buffer, 0, buffer.length)) != -1) {
+						writeChannel.write(ByteBuffer.wrap(buffer, 0,
+								len));
+					}
+
+					writeChannel.closeFinally();
+
+					BlobKey key = fileService.getBlobKey(file);
+					logger.info("Image succesfully stored");
+					return key;
+				}
+			}
+		} catch (Exception e) {
+			logger.severe(e.toString());
+		}
+		return null;
+		
+	}
+	
+	public String getImageUrl(BlobKey tempKey)
+	{
+		ImagesService imagesService = ImagesServiceFactory
+				.getImagesService();
+		ServingUrlOptions options = ServingUrlOptions.Builder
+				.withBlobKey(tempKey);
+
+		String url = imagesService.getServingUrl(options);
+		return url;
+	}
+
+	/*
+	public String getImageUrl(HttpServletRequest req, String key)
+	{
+	    String scheme = req.getScheme();             // http
+	    String serverName = req.getServerName();     // hostname.com
+	    int serverPort = req.getServerPort();        // 80
+	    String contextPath = req.getContextPath();   // /mywebapp
+	    String servletPath = "/image?image=";
+
+
+	    // Reconstruct original requesting URL
+	    String url = scheme+"://"+serverName+":"+serverPort+contextPath+servletPath+key;
+	    logger.info("Image url is: " + url);
+	    return url;
+	}
+	*/
 }
