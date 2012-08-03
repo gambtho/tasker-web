@@ -23,6 +23,7 @@ import java.util.List;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload.FileUploadBase.InvalidContentTypeException;
 
 import com.google.appengine.api.files.AppEngineFile;
 import com.google.appengine.api.files.FileService;
@@ -60,6 +61,8 @@ import com.gokaconsulting.taskerweb.server.PMF;
 public class TaskServlet extends HttpServlet {
 	private static final long serialVersionUID = 6608053225431400157L;
 	private final Logger logger = Logger.getLogger(TaskServlet.class.getName());
+	private final DateFormat formatter = new SimpleDateFormat(
+			"yy-MM-dd HH:mm:ss Z");
 
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
@@ -117,10 +120,7 @@ public class TaskServlet extends HttpServlet {
 						}
 					}
 					gson.toJson(results, resp.getWriter());
-
 					resp.setContentType("application/json");
-					// resp.setCharacterEncoding("utf-8");
-
 				} finally {
 					pm.close();
 				}
@@ -137,7 +137,6 @@ public class TaskServlet extends HttpServlet {
 		// String userID = req.getParameter("user");
 		if (taskID != null && Integer.parseInt(taskID) > 0) {
 			logger.info("Delete requested for Task: " + taskID);
-
 			try {
 				Key k = KeyFactory.createKey(Task.class.getSimpleName(),
 						Long.valueOf(taskID));
@@ -147,17 +146,17 @@ public class TaskServlet extends HttpServlet {
 			} catch (Exception e) {
 				logger.log(Level.SEVERE, "Unable to delete Task: " + taskID, e);
 				resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-						"Task: " + " not found for deletion");
+						"Task: " + taskID + " not found for deletion");
 			} finally {
 				pm.close();
 			}
 		} else {
-			// TODO: error if no task is passed to delete
-			logger.warning("Delete request without task ID");
+			logger.log(Level.WARNING,
+					"Delete request without valid task parameter");
 		}
 		resp.setContentType("application/json");
 	}
-	
+
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
 
@@ -178,42 +177,22 @@ public class TaskServlet extends HttpServlet {
 				String taskDescription = req.getParameter("taskDescription");
 				String completor = req.getParameter("completor");
 				String status = req.getParameter("status");
-				String dueParm = req.getParameter("dueDate");
-				String completedParm = req.getParameter("completedDate");
 
-				Date dueDate = null;
-				Date completedDate = null;
+				Date dueDate = getDate(req.getParameter("dueDate"));
+				Date completedDate = getDate(req.getParameter("completedDate"));
 
-				DateFormat formatter = new SimpleDateFormat(
-						"yy-MM-dd HH:mm:ss Z");
+				if (ServletFileUpload.isMultipartContent(req)) {
+					BlobKey tempKey = uploadImage(req);
 
-				if (dueParm != null) {
-					try {
-						logger.info("Due date will be: " + dueParm);
-						dueDate = (Date) formatter.parse(dueParm);
-					} catch (ParseException e) {
-						logger.severe("Failed to convert due date: " + dueParm
-								+ " for update");
-					}
-				}
-				if (completedParm != null) {
-					try {
-						completedDate = (Date) formatter.parse(completedParm);
-					} catch (ParseException e) {
-						logger.severe("Failed to convert completed date: "
-								+ completedParm + " for update");
+					if (tempKey != null) {
+						t.setBeforeKey(tempKey);
+						t.setBeforePhotoUrl(getImageUrl(tempKey));
 					}
 				}
 				
-				BlobKey tempKey = uploadImage(req);
-				
-				if (tempKey != null) {
-					t.setBeforeKey(tempKey);
-					t.setBeforePhotoUrl(getImageUrl(tempKey));
-				}
-				
-				logger.info("Completor is: " + t.getCompletor() + " " + completor);
-				
+				logger.info("Completor is: " + t.getCompletor() + " "
+						+ completor);
+
 				t.setTitle(title);
 				t.setCompletor(completor);
 				t.setStatus(status);
@@ -221,13 +200,16 @@ public class TaskServlet extends HttpServlet {
 				t.setDueDate(dueDate);
 				t.setCompletedDate(completedDate);
 				t.setCreator(creator);
-				logger.info("Completor is: " + t.getCompletor() + " " + completor);
+
 				Gson gson = new GsonBuilder()
 						.excludeFieldsWithoutExposeAnnotation().create();
 
 				gson.toJson(t, resp.getWriter());
 				resp.setContentType("application/json");
-
+			} catch (Exception e) {
+				logger.log(Level.SEVERE, "Unable to complete Post ", e);
+				resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+						"Post failed");
 			} finally {
 				pm.close();
 			}
@@ -235,6 +217,8 @@ public class TaskServlet extends HttpServlet {
 
 		else {
 			logger.severe("Post attempted without taskID");
+			resp.sendError(HttpServletResponse.SC_BAD_REQUEST,
+					"Post must include a taskID");
 		}
 
 	}
@@ -247,37 +231,20 @@ public class TaskServlet extends HttpServlet {
 		String taskDescription = req.getParameter("taskDescription");
 		String completor = req.getParameter("completor");
 		String status = req.getParameter("status");
-		String dueParm = req.getParameter("dueDate");
 		BlobKey beforeKey = null;
 		String beforePhotoUrl = null;
+		Date dueDate = getDate(req.getParameter("dueDate"));
+		Date createDate = new Date();
 
 		logger.info("Task to be addeed: " + title);
-
-		Date createDate = new Date();
-		Date dueDate = null;
-
-		DateFormat formatter = new SimpleDateFormat("yy-MM-dd HH:mm:ss Z");
-
-		if (dueParm != null) {
-			try {
-				dueDate = (Date) formatter.parse(dueParm);
-			} catch (ParseException e) {
-				logger.severe("Failed to convert due date: " + dueParm
-						+ " for insert");
-			}
-		}
-
-			beforeKey = uploadImage(req);
 		
-		if (beforeKey != null) {
-			beforePhotoUrl = getImageUrl(beforeKey);
-		}
-		
+		beforeKey = uploadImage(req);
+
 		logger.info("Completor is: " + completor);
-		
+
 		Task t = new Task(title, creator, createDate, taskDescription, dueDate,
 				completor, status, beforePhotoUrl, beforeKey);
-		
+
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 
 		try {
@@ -297,15 +264,18 @@ public class TaskServlet extends HttpServlet {
 				logger.severe("Invalid task id created for task with title: "
 						+ t.getTitle());
 			}
-		}
-		finally {
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, "Unable to complete put ", e);
+			resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+					"Put failed");
+		} finally {
 			pm.close();
 		}
 	}
-	
-	public BlobKey uploadImage(HttpServletRequest req) throws IOException
-	{
-		
+
+	public BlobKey uploadImage(HttpServletRequest req) throws IOException {
+
+		BlobKey key = null;
 		try {
 			ServletFileUpload upload = new ServletFileUpload();
 
@@ -319,8 +289,7 @@ public class TaskServlet extends HttpServlet {
 							+ item.getFieldName());
 				} else {
 					logger.warning("Received an update with an uploaded file: "
-							+ item.getFieldName()
-							+ ", name = "
+							+ item.getFieldName() + ", name = "
 							+ item.getName());
 
 					FileService fileService = FileServiceFactory
@@ -335,28 +304,40 @@ public class TaskServlet extends HttpServlet {
 					int len;
 					byte[] buffer = new byte[8192];
 					while ((len = stream.read(buffer, 0, buffer.length)) != -1) {
-						writeChannel.write(ByteBuffer.wrap(buffer, 0,
-								len));
+						writeChannel.write(ByteBuffer.wrap(buffer, 0, len));
 					}
 
 					writeChannel.closeFinally();
 
-					BlobKey key = fileService.getBlobKey(file);
+					key = fileService.getBlobKey(file);
 					logger.info("Image succesfully stored");
-					return key;
 				}
 			}
+		} catch(InvalidContentTypeException e) {
+			logger.info("No image attached");
 		} catch (Exception e) {
-			logger.severe(e.toString());
+			logger.log(Level.SEVERE, "Unable to retrieve image ", e);
 		}
-		return null;
 		
+		return key;
+
 	}
-	
-	public String getImageUrl(BlobKey tempKey)
-	{
-		ImagesService imagesService = ImagesServiceFactory
-				.getImagesService();
+
+	public Date getDate(String dateParm) {
+		Date date = null;
+		if (dateParm != null) {
+			try {
+				logger.info("Processing date: " + dateParm);
+				date = (Date) formatter.parse(dateParm);
+			} catch (ParseException e) {
+				logger.log(Level.SEVERE, "Unable to parse date: " + dateParm, e);
+			}
+		}
+		return date;
+	}
+
+	public String getImageUrl(BlobKey tempKey) {
+		ImagesService imagesService = ImagesServiceFactory.getImagesService();
 		ServingUrlOptions options = ServingUrlOptions.Builder
 				.withBlobKey(tempKey);
 
@@ -365,19 +346,15 @@ public class TaskServlet extends HttpServlet {
 	}
 
 	/*
-	public String getImageUrl(HttpServletRequest req, String key)
-	{
-	    String scheme = req.getScheme();             // http
-	    String serverName = req.getServerName();     // hostname.com
-	    int serverPort = req.getServerPort();        // 80
-	    String contextPath = req.getContextPath();   // /mywebapp
-	    String servletPath = "/image?image=";
-
-
-	    // Reconstruct original requesting URL
-	    String url = scheme+"://"+serverName+":"+serverPort+contextPath+servletPath+key;
-	    logger.info("Image url is: " + url);
-	    return url;
-	}
-	*/
+	 * public String getImageUrl(HttpServletRequest req, String key) { String
+	 * scheme = req.getScheme(); // http String serverName =
+	 * req.getServerName(); // hostname.com int serverPort =
+	 * req.getServerPort(); // 80 String contextPath = req.getContextPath(); //
+	 * /mywebapp String servletPath = "/image?image=";
+	 * 
+	 * 
+	 * // Reconstruct original requesting URL String url =
+	 * scheme+"://"+serverName+":"+serverPort+contextPath+servletPath+key;
+	 * logger.info("Image url is: " + url); return url; }
+	 */
 }
