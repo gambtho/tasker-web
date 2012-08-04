@@ -33,6 +33,8 @@ import com.google.appengine.api.images.ImagesService;
 import com.google.appengine.api.images.ImagesServiceFactory;
 import com.google.appengine.api.images.ServingUrlOptions;
 import com.google.appengine.api.blobstore.BlobKey;
+import com.google.appengine.api.blobstore.BlobstoreService;
+import com.google.appengine.api.blobstore.BlobstoreServiceFactory;
 import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.Key;
 
@@ -63,6 +65,10 @@ public class TaskServlet extends HttpServlet {
 	private final Logger logger = Logger.getLogger(TaskServlet.class.getName());
 	private final DateFormat formatter = new SimpleDateFormat(
 			"yy-MM-dd HH:mm:ss Z");
+	private ImagesService imagesService = ImagesServiceFactory.getImagesService();
+	private BlobstoreService blobstoreService = BlobstoreServiceFactory.getBlobstoreService();
+	private FileService fileService = FileServiceFactory.getFileService();
+
 
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
@@ -141,6 +147,15 @@ public class TaskServlet extends HttpServlet {
 				Key k = KeyFactory.createKey(Task.class.getSimpleName(),
 						Long.valueOf(taskID));
 				Task t = pm.getObjectById(Task.class, k);
+				
+				blobstoreService = BlobstoreServiceFactory.getBlobstoreService();
+				//TODO: add after key if needed
+				BlobKey tempKey = t.getBeforeKey();
+				if(tempKey!=null)
+				{
+					blobstoreService.delete(t.getBeforeKey());
+				}
+				
 				pm.deletePersistent(t);
 				logger.info("Delete succesful for Task: " + taskID);
 			} catch (Exception e) {
@@ -189,7 +204,7 @@ public class TaskServlet extends HttpServlet {
 						t.setBeforePhotoUrl(getImageUrl(tempKey));
 					}
 				}
-				
+
 				logger.info("Completor is: " + t.getCompletor() + " "
 						+ completor);
 
@@ -237,14 +252,13 @@ public class TaskServlet extends HttpServlet {
 		Date createDate = new Date();
 
 		logger.info("Task to be addeed: " + title);
-		
+
 		beforeKey = uploadImage(req);
-		
-		if(beforeKey!=null)
-		{
+
+		if (beforeKey != null) {
 			beforePhotoUrl = getImageUrl(beforeKey);
 		}
-		
+
 		logger.info("Completor is: " + completor);
 
 		Task t = new Task(title, creator, createDate, taskDescription, dueDate,
@@ -297,7 +311,7 @@ public class TaskServlet extends HttpServlet {
 							+ item.getFieldName() + ", name = "
 							+ item.getName());
 
-					FileService fileService = FileServiceFactory
+					fileService = FileServiceFactory
 							.getFileService();
 
 					AppEngineFile file = fileService
@@ -318,15 +332,17 @@ public class TaskServlet extends HttpServlet {
 					logger.info("Image succesfully stored");
 				}
 			}
-		} catch(InvalidContentTypeException e) {
-			//TODO: determine why put message requires this (check in post works but not put)
+		} catch (InvalidContentTypeException e) {
+
+			// TODO: determine why put message requires this (check in post
+			// works but not put)
+
 			logger.info("No image attached");
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Unable to retrieve image ", e);
 		}
-		
-		return key;
 
+		return key;
 	}
 
 	public Date getDate(String dateParm) {
@@ -343,7 +359,7 @@ public class TaskServlet extends HttpServlet {
 	}
 
 	public String getImageUrl(BlobKey tempKey) {
-		ImagesService imagesService = ImagesServiceFactory.getImagesService();
+		imagesService = ImagesServiceFactory.getImagesService();
 		ServingUrlOptions options = ServingUrlOptions.Builder
 				.withBlobKey(tempKey);
 
