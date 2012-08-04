@@ -20,3 +20,5 @@ tasker/war/WEB-INF/classes/
 
 # App engine generated #
 tasker/war/WEB-INF/appengine-generated/
+
+tasker/war/WEB-INF/classes/com/gokaconsulting/taskerweb/server/TaskServlet.class
