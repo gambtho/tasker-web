@@ -54,9 +54,6 @@ import com.gokaconsulting.taskerweb.server.PMF;
  import com.google.appengine.api.memcache.MemcacheService;
  import com.google.appengine.api.memcache.MemcacheServiceException;
  import com.google.appengine.api.memcache.MemcacheServiceFactory;
- import com.google.appengine.api.blobstore.BlobKey;
- import com.google.appengine.api.blobstore.BlobstoreService;
- import com.google.appengine.api.blobstore.BlobstoreServiceFactory;
  import org.apache.commons.lang.ArrayUtils;
  */
 
