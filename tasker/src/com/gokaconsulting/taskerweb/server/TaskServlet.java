@@ -237,6 +237,7 @@ public class TaskServlet extends HttpServlet {
 		Date createDate = new Date();
 
 		logger.info("Task to be addeed: " + title);
+<<<<<<< HEAD
 		
 		beforeKey = uploadImage(req);
 		
@@ -244,7 +245,11 @@ public class TaskServlet extends HttpServlet {
 		{
 			beforePhotoUrl = getImageUrl(beforeKey);
 		}
+=======
+>>>>>>> de9bafac26ea52897be21ce08c5eda8c7d313a94
 		
+		beforeKey = uploadImage(req);
+
 		logger.info("Completor is: " + completor);
 
 		Task t = new Task(title, creator, createDate, taskDescription, dueDate,
@@ -319,7 +324,10 @@ public class TaskServlet extends HttpServlet {
 				}
 			}
 		} catch(InvalidContentTypeException e) {
+<<<<<<< HEAD
 			//TODO: determine why put message requires this (check in post works but not put)
+=======
+>>>>>>> de9bafac26ea52897be21ce08c5eda8c7d313a94
 			logger.info("No image attached");
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Unable to retrieve image ", e);
@@ -327,6 +335,7 @@ public class TaskServlet extends HttpServlet {
 		
 		return key;
 
+<<<<<<< HEAD
 	}
 
 	public Date getDate(String dateParm) {
@@ -342,6 +351,23 @@ public class TaskServlet extends HttpServlet {
 		return date;
 	}
 
+=======
+	}
+
+	public Date getDate(String dateParm) {
+		Date date = null;
+		if (dateParm != null) {
+			try {
+				logger.info("Processing date: " + dateParm);
+				date = (Date) formatter.parse(dateParm);
+			} catch (ParseException e) {
+				logger.log(Level.SEVERE, "Unable to parse date: " + dateParm, e);
+			}
+		}
+		return date;
+	}
+
+>>>>>>> de9bafac26ea52897be21ce08c5eda8c7d313a94
 	public String getImageUrl(BlobKey tempKey) {
 		ImagesService imagesService = ImagesServiceFactory.getImagesService();
 		ServingUrlOptions options = ServingUrlOptions.Builder
